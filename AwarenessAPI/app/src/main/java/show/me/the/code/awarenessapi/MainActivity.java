@@ -1,6 +1,10 @@
 package show.me.the.code.awarenessapi;
 
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,14 +19,21 @@ import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
 public class MainActivity extends AppCompatActivity {
-
-    private PendingIntent intent;
+    private static final String FENCE_RECEIVER_ACTION =
+            "show.me.the.code.awarenessapi";
+    private PendingIntent pendingIntent;
+    private FenceReveiver myFenceReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        android.content.Context context;
+
+        Intent intent = new Intent(FENCE_RECEIVER_ACTION);
+        pendingIntent = PendingIntent.getBroadcast(this, 0, intent , 0);
+        myFenceReceiver = new FenceReveiver();
+        registerReceiver(myFenceReceiver, new IntentFilter(FENCE_RECEIVER_ACTION));
+
         GoogleApiClient client = new GoogleApiClient.Builder(this)
                 .addApi(Awareness.API)
                 .build();
@@ -30,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
         AwarenessFence walkingFence = DetectedActivityFence.during(DetectedActivityFence.WALKING);
 
-        Awareness.FenceApi.updateFences(client, new FenceUpdateRequest.Builder().addFence("walkingFence", walkingFence, intent).build())
+        Awareness.FenceApi.updateFences(client, new FenceUpdateRequest.Builder().addFence("walkingFence", walkingFence, pendingIntent).build())
                 .setResultCallback(new ResultCallback<Status>() {
                     @Override
                     public void onResult(@NonNull Status status) {
@@ -39,5 +50,19 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(myFenceReceiver);
+    }
+
+    public class FenceReveiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
     }
 }
